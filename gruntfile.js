@@ -8,7 +8,7 @@ module.exports = function (grunt) {
           '<%= grunt.template.today("yyyy-mm-dd") %>\n' +
           '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
           '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
-          ' Licensed <%= props.license %> */\n',
+          ' Licensed <%= pkg.license %> */\n',
       // Task configuration
       uglify: {
         options: {
@@ -51,17 +51,18 @@ module.exports = function (grunt) {
             tasks: 'coffee'
         },
         karma: {
-          files: ['src/modelFactory.coffee', 'test/*Spec.coffee'],
+          files: ['src/*.coffee', 'test/*Spec.coffee'],
           tasks: ['karma:unit:run']
         }
       },
       coffee: {
         options: {
-            join: true
+            join: true,
+            bare: true
         },
         compile: {
             files: {
-                'dist/modelFactory.js': ['src/*.coffee']
+                'dist/modelFactory.js': ['src/model-factory.coffee','src/*.coffee']
             }
         }
       },
@@ -81,6 +82,6 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-karma');
 
   // Default task
-  grunt.registerTask('default', ['jshint', 'coffee', 'uglify']);
+  grunt.registerTask('build', ['jshint', 'coffee', 'uglify']);
   grunt.registerTask('dev', ['karma:unit:start', 'watch']);
 };

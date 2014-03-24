@@ -1,242 +1,300 @@
-(function() {
-  angular.module('rjmetrics.model-factory', ['ng', 'jmdobry.angular-cache']).factory("modelFactory", [
-    "$q", "$http", "$angularCacheFactory", function($q, $http, $angularCacheFactory) {
-      var DEFAULT_OPTIONS;
-      DEFAULT_OPTIONS = {
-        maxAge: 600000,
-        recycleFreq: 300000,
-        deleteOnExpire: 'aggressive'
-      };
-      return function(url, options) {
-        var Model;
-        options = angular.extend({}, DEFAULT_OPTIONS, options);
-        Model = (function() {
-          var _addCollection, _addModel, _collectionLoaded, _getCollectionPromise, _getPromiseMap, _modelCache, _modelCollection, _removeModel, _updateModel;
+angular.module('rjmetrics.model-factory', ['ng', 'jmdobry.angular-cache']);
 
-          function Model(value) {
-            angular.copy(value || {}, this);
-            if (!_modelCache.get("" + this.id)) {
-              _modelCache.put("" + this.id, this);
-            }
+angular.module('rjmetrics.model-factory').directive("formSubmittee", [
+  "$parse", "$exceptionHandler", function($parse, $exceptionHandler) {
+    return {
+      priority: 9000,
+      restrict: "A",
+      require: ['ngModel', '^form'],
+      link: function(scope, elm, attrs, controllers) {
+        var form, listener, modelGet, ngModel;
+        ngModel = controllers[0];
+        form = controllers[1];
+        ngModel.$parsers.push(function(value) {
+          if (value === ngModel.$modelValue) {
+            ngModel.$setPristine();
           }
-
-          _getPromiseMap = {};
-
-          _getCollectionPromise = null;
-
-          _modelCollection = [];
-
-          _collectionLoaded = false;
-
-          options.onExpire = function(key, model) {
-            _modelCache.put(key, model);
-            if (!_getPromiseMap[+key]) {
-              return _getPromiseMap[+key] = $http.get(url + key).then(function(successResponse) {
-                delete _getPromiseMap[+key];
-                return _updateModel(successResponse.data);
-              }, function(errorResponse) {
-                delete _getPromiseMap[+key];
-                return _removeModel(model);
-              });
+          return ngModel.$modelValue;
+        });
+        modelGet = $parse(attrs.ngModel);
+        listener = scope.$on("formSubmitter-submit-" + form.$name, function() {
+          ngModel.$modelValue = ngModel.$viewValue;
+          modelGet.assign(scope, ngModel.$viewValue);
+          return angular.forEach(ngModel.$viewChangeListeners, function(listener) {
+            var e;
+            try {
+              return listener();
+            } catch (_error) {
+              e = _error;
+              return $exceptionHandler(e);
             }
-          };
+          });
+        });
+        return scope.$on("$destroy", listener);
+      }
+    };
+  }
+]);
 
-          _modelCache = $angularCacheFactory(url, options);
+angular.module('rjmetrics.model-factory').directive("formSubmitter", [
+  "$parse", function($parse) {
+    return {
+      restrict: "A",
+      require: 'form',
+      link: function(scope, elm, attrs, form) {
+        var fn;
+        fn = $parse(attrs.formSubmitter);
+        elm.on("submit", function(event) {
+          return scope.$apply(function() {
+            scope.$broadcast("formSubmitter-submit-" + form.$name);
+            scope.$eval(attrs.formSubmitter);
+            return form.$setPristine();
+          });
+        });
+        return scope.$on("$destroy", function() {
+          return elm.off("submit");
+        });
+      }
+    };
+  }
+]);
 
-          _addModel = function(modelData) {
-            var model;
-            model = new Model(modelData);
-            _modelCollection.push(model);
-            return model;
-          };
+angular.module('rjmetrics.model-factory').factory("modelFactory", [
+  "$q", "$http", "$angularCacheFactory", function($q, $http, $angularCacheFactory) {
+    var DEFAULT_OPTIONS;
+    DEFAULT_OPTIONS = {
+      maxAge: 600000,
+      recycleFreq: 300000,
+      deleteOnExpire: 'aggressive'
+    };
+    return function(url, options) {
+      var Model;
+      options = angular.extend({}, DEFAULT_OPTIONS, options);
+      Model = (function() {
+        var _addCollection, _addModel, _collectionLoaded, _getCollectionPromise, _getPromiseMap, _modelCache, _modelCollection, _removeModel, _updateModel;
 
-          _updateModel = function(modelData) {
-            var model;
-            model = _modelCache.get("" + modelData.id);
-            if (!angular.equals(model, modelData)) {
-              angular.copy(modelData, model);
-            }
-            if (!_(_modelCollection).contains(model)) {
-              _modelCollection.push(model);
-            }
-            return model;
-          };
+        function Model(value) {
+          angular.copy(value || {}, this);
+          if (!_modelCache.get("" + this.id)) {
+            _modelCache.put("" + this.id, this);
+          }
+        }
 
-          _addCollection = function(collection) {
-            _(collection).each(function(model) {
-              if (_modelCache.get("" + model.id)) {
-                return _updateModel(model);
-              } else {
-                return _addModel(model);
-              }
-            });
-            return _modelCollection;
-          };
+        _getPromiseMap = {};
 
-          _removeModel = function(model) {
-            if (_modelCollection.length > 0) {
-              _modelCollection.splice(_modelCollection.indexOf(model), 1);
-            }
-            _modelCache.remove("" + model.id);
-          };
+        _getCollectionPromise = null;
 
-          Model.url = url;
+        _modelCollection = [];
 
-          Model.get = function(modelId, forceGet, httpOptions) {
-            var deferred, httpObject, model;
-            if (forceGet == null) {
-              forceGet = false;
-            }
-            if (httpOptions == null) {
-              httpOptions = {};
-            }
-            if (_getPromiseMap[modelId] != null) {
-              return _getPromiseMap[modelId];
-            }
-            deferred = $q.defer();
-            model = _modelCache.get("" + modelId);
-            if (!forceGet && (model != null)) {
-              deferred.resolve(model);
-            } else {
-              _getPromiseMap[modelId] = deferred.promise;
-              httpObject = angular.extend({}, httpOptions, {
-                method: 'GET',
-                url: this.url + modelId
-              });
-              $http(httpObject).then(function(successResponse) {
-                if (_modelCache.get("" + modelId) != null) {
-                  deferred.resolve(_updateModel(successResponse.data));
-                } else {
-                  deferred.resolve(_addModel(successResponse.data));
-                }
-                return delete _getPromiseMap[modelId];
-              }, function(errorResponse) {
-                deferred.reject(errorResponse);
-                return delete _getPromiseMap[modelId];
-              });
-            }
-            return deferred.promise;
-          };
+        _collectionLoaded = false;
 
-          Model.getCollection = function(forceGet, httpOptions) {
-            var deferred, httpObject;
-            if (forceGet == null) {
-              forceGet = false;
-            }
-            if (httpOptions == null) {
-              httpOptions = {};
-            }
-            if (_getCollectionPromise != null) {
-              return _getCollectionPromise;
-            }
-            deferred = $q.defer();
-            if (!forceGet && _collectionLoaded) {
-              deferred.resolve(_modelCollection);
-            } else {
-              _collectionLoaded = true;
-              _getCollectionPromise = deferred.promise;
-              httpObject = angular.extend({}, httpOptions, {
-                method: 'GET',
-                url: this.url
-              });
-              $http(httpObject).then(function(successResponse) {
-                deferred.resolve(_addCollection(successResponse.data));
-                return _getCollectionPromise = null;
-              }, function(errorResponse) {
-                deferred.reject(errorResponse);
-                return _getCollectionPromise = null;
-              });
-            }
-            return deferred.promise;
-          };
-
-          Model.save = function(model, httpOptions) {
-            var httpObject;
-            if (httpOptions == null) {
-              httpOptions = {};
-            }
-            if (model.id == null) {
-              throw new Error("Model must have an id property to be saved");
-            }
-            httpObject = angular.extend({}, httpOptions, {
-              method: 'POST',
-              url: this.url + model.id,
-              data: model
-            });
-            return $http(httpObject).then(function(successResponse) {
+        options.onExpire = function(key, model) {
+          _modelCache.put(key, model);
+          if (!_getPromiseMap[+key]) {
+            return _getPromiseMap[+key] = $http.get(url + key).then(function(successResponse) {
+              delete _getPromiseMap[+key];
               return _updateModel(successResponse.data);
             }, function(errorResponse) {
-              return errorResponse;
+              delete _getPromiseMap[+key];
+              return _removeModel(model);
             });
-          };
+          }
+        };
 
-          Model.create = function(modelData, httpOptions) {
-            var httpObject;
-            if (httpOptions == null) {
-              httpOptions = {};
+        _modelCache = $angularCacheFactory(url, options);
+
+        _addModel = function(modelData) {
+          var model;
+          model = new Model(modelData);
+          _modelCollection.push(model);
+          return model;
+        };
+
+        _updateModel = function(modelData) {
+          var model;
+          model = _modelCache.get("" + modelData.id);
+          if (!angular.equals(model, modelData)) {
+            angular.copy(modelData, model);
+          }
+          if (!_(_modelCollection).contains(model)) {
+            _modelCollection.push(model);
+          }
+          return model;
+        };
+
+        _addCollection = function(collection) {
+          _(collection).each(function(model) {
+            if (_modelCache.get("" + model.id)) {
+              return _updateModel(model);
+            } else {
+              return _addModel(model);
             }
-            if (modelData.id != null) {
-              throw new Error("Can not create new model that already has an id set");
-            }
+          });
+          return _modelCollection;
+        };
+
+        _removeModel = function(model) {
+          if (_modelCollection.length > 0) {
+            _modelCollection.splice(_modelCollection.indexOf(model), 1);
+          }
+          _modelCache.remove("" + model.id);
+        };
+
+        Model.url = url;
+
+        Model.get = function(modelId, forceGet, httpOptions) {
+          var deferred, httpObject, model;
+          if (forceGet == null) {
+            forceGet = false;
+          }
+          if (httpOptions == null) {
+            httpOptions = {};
+          }
+          if (_getPromiseMap[modelId] != null) {
+            return _getPromiseMap[modelId];
+          }
+          deferred = $q.defer();
+          model = _modelCache.get("" + modelId);
+          if (!forceGet && (model != null)) {
+            deferred.resolve(model);
+          } else {
+            _getPromiseMap[modelId] = deferred.promise;
             httpObject = angular.extend({}, httpOptions, {
-              method: 'POST',
-              url: this.url,
-              data: modelData
+              method: 'GET',
+              url: this.url + modelId
             });
-            return $http(httpObject).then(function(successResponse) {
-              return _addModel(successResponse.data);
+            $http(httpObject).then(function(successResponse) {
+              if (_modelCache.get("" + modelId) != null) {
+                deferred.resolve(_updateModel(successResponse.data));
+              } else {
+                deferred.resolve(_addModel(successResponse.data));
+              }
+              return delete _getPromiseMap[modelId];
             }, function(errorResponse) {
-              return errorResponse;
+              deferred.reject(errorResponse);
+              return delete _getPromiseMap[modelId];
             });
-          };
+          }
+          return deferred.promise;
+        };
 
-          Model["delete"] = function(model, httpOptions) {
-            var httpObject;
-            if (httpOptions == null) {
-              httpOptions = {};
-            }
+        Model.getCollection = function(forceGet, httpOptions) {
+          var deferred, httpObject;
+          if (forceGet == null) {
+            forceGet = false;
+          }
+          if (httpOptions == null) {
+            httpOptions = {};
+          }
+          if (_getCollectionPromise != null) {
+            return _getCollectionPromise;
+          }
+          deferred = $q.defer();
+          if (!forceGet && _collectionLoaded) {
+            deferred.resolve(_modelCollection);
+          } else {
+            _collectionLoaded = true;
+            _getCollectionPromise = deferred.promise;
             httpObject = angular.extend({}, httpOptions, {
-              method: 'DELETE',
-              url: this.url + model.id
+              method: 'GET',
+              url: this.url
             });
-            return $http(httpObject).then(function(successResponse) {
-              _removeModel(model);
-              return successResponse;
+            $http(httpObject).then(function(successResponse) {
+              deferred.resolve(_addCollection(successResponse.data));
+              return _getCollectionPromise = null;
             }, function(errorResponse) {
-              return errorResponse;
+              deferred.reject(errorResponse);
+              return _getCollectionPromise = null;
             });
-          };
+          }
+          return deferred.promise;
+        };
 
-          Model.prototype.$get = function(forceGet, httpOptions) {
-            if (forceGet == null) {
-              forceGet = false;
-            }
-            if (httpOptions == null) {
-              httpOptions = {};
-            }
-            return Model.get(this.id, forceGet, httpOptions);
-          };
+        Model.save = function(model, httpOptions) {
+          var httpObject;
+          if (httpOptions == null) {
+            httpOptions = {};
+          }
+          if (model.id == null) {
+            throw new Error("Model must have an id property to be saved");
+          }
+          httpObject = angular.extend({}, httpOptions, {
+            method: 'POST',
+            url: this.url + model.id,
+            data: model
+          });
+          return $http(httpObject).then(function(successResponse) {
+            return _updateModel(successResponse.data);
+          }, function(errorResponse) {
+            return errorResponse;
+          });
+        };
 
-          Model.prototype.$save = function(httpOptions) {
-            if (httpOptions == null) {
-              httpOptions = {};
-            }
-            return Model.save(this, httpOptions);
-          };
+        Model.create = function(modelData, httpOptions) {
+          var httpObject;
+          if (httpOptions == null) {
+            httpOptions = {};
+          }
+          if (modelData.id != null) {
+            throw new Error("Can not create new model that already has an id set");
+          }
+          httpObject = angular.extend({}, httpOptions, {
+            method: 'POST',
+            url: this.url,
+            data: modelData
+          });
+          return $http(httpObject).then(function(successResponse) {
+            return _addModel(successResponse.data);
+          }, function(errorResponse) {
+            return errorResponse;
+          });
+        };
 
-          Model.prototype.$delete = function(httpOptions) {
-            if (httpOptions == null) {
-              httpOptions = {};
-            }
-            return Model["delete"](this, httpOptions);
-          };
+        Model["delete"] = function(model, httpOptions) {
+          var httpObject;
+          if (httpOptions == null) {
+            httpOptions = {};
+          }
+          httpObject = angular.extend({}, httpOptions, {
+            method: 'DELETE',
+            url: this.url + model.id
+          });
+          return $http(httpObject).then(function(successResponse) {
+            _removeModel(model);
+            return successResponse;
+          }, function(errorResponse) {
+            return errorResponse;
+          });
+        };
 
-          return Model;
+        Model.prototype.$get = function(forceGet, httpOptions) {
+          if (forceGet == null) {
+            forceGet = false;
+          }
+          if (httpOptions == null) {
+            httpOptions = {};
+          }
+          return Model.get(this.id, forceGet, httpOptions);
+        };
 
-        })();
+        Model.prototype.$save = function(httpOptions) {
+          if (httpOptions == null) {
+            httpOptions = {};
+          }
+          return Model.save(this, httpOptions);
+        };
+
+        Model.prototype.$delete = function(httpOptions) {
+          if (httpOptions == null) {
+            httpOptions = {};
+          }
+          return Model["delete"](this, httpOptions);
+        };
+
         return Model;
-      };
-    }
-  ]);
 
-}).call(this);
+      })();
+      return Model;
+    };
+  }
+]);

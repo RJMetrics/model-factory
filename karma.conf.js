@@ -17,7 +17,8 @@ module.exports = function(config) {
       'bower_components/angular-mocks/angular-mocks.js',
       'bower_components/angular-cache/dist/angular-cache.js',
       'bower_components/underscore/underscore.js',
-      'src/modelFactory.coffee',
+      'src/model-factory.coffee',
+      'src/*.coffee',
       'test/*Spec.coffee'
     ],
 
