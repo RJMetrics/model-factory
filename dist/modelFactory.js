@@ -1,5 +1,5 @@
 (function() {
-  angular.module('rjmapi').factory("modelFactory", [
+  angular.module('rjmetrics.model-factory', ['ng', 'jmdobry.angular-cache']).factory("modelFactory", [
     "$q", "$http", "$angularCacheFactory", function($q, $http, $angularCacheFactory) {
       var DEFAULT_OPTIONS;
       DEFAULT_OPTIONS = {

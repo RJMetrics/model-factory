@@ -1,4 +1,4 @@
-angular.module('model-factory').factory("modelFactory", [
+angular.module('rjmetrics.model-factory', ['ng','jmdobry.angular-cache']).factory("modelFactory", [
   "$q"
   "$http"
   "$angularCacheFactory"
