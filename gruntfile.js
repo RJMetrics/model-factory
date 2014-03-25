@@ -62,7 +62,7 @@ module.exports = function (grunt) {
         },
         compile: {
             files: {
-                'dist/modelFactory.js': ['src/model-factory.coffee','src/*.coffee']
+                'dist/<%= pkg.name %>.js': ['src/model-factory.coffee','src/*.coffee']
             }
         }
       },
