@@ -10,9 +10,9 @@ A tool for building RESTful models for AngularJS
 - suggestions?
 
 ### Design
-This is a simple model factory built on top of [jmdobry's](https://github.com/jmdobry) awesome [angular-cache](https://github.com/jmdobry/angular-cache) and inspired by angular's [$resource](http://docs.angularjs.org/api/ngResource/service/$resource).
+This is a simple model factory inspired by angular's [$resource](http://docs.angularjs.org/api/ngResource/service/$resource) and built on top of [jmdobry's](https://github.com/jmdobry) awesome [angular-cache](https://github.com/jmdobry/angular-cache).
 
-Currently you can build simple resources that support basic REST CRUD operations that will persist themselves in an angular-cache. This is great for low memory use because only one object exists in memory for each model loaded from the server. Any future requests to get that model will return the cached value helping with illusion of speed. It also helps if your model is needed by different controllers on the same page or if your users change pages frequently.
+The model factory builds simple resources that implement REST/CRUD functions with the help of angular-cache. The model-factory creates a single point of truth--all references to an instance point to the same object in memory no matter how many requests you make. This cuts down on memory usage and ensures that the model state is identical across all instances of the model in your controllers. The model-factory also decreases time to render by returning a cached value instead of making multiple requests.
 
 #### CAVEAT!
-Because each model lives in the same place using angular's two way binding can lead to unforseen consequencs. Ex: a model is two way binded to an input with ng-model and displayed somewhere else on the page using simple binding. Editing the input will cause the the other value to update immedietly but the server is still not updated. Sometimes this is what you want, sometimes it isn't. Make sure you understand what this means (visual aids to come).
+Using angular's two-way binding can lead to unforeseen consequences because all references to a model point to the same object in memory. Let's say a model is bound to an input using ng-model and displayed somewhere else on the page. Editing the input will cause the the other value to update immediately. The server instance of the model will only be updated by calling the model-factory's create or save call. Make sure to keep this in mind while using the model-factory in your app.  (visual aids to come).
