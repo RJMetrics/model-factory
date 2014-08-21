@@ -4,16 +4,21 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
   "$angularCacheFactory"
   ($q, $http, $angularCacheFactory) ->
     #TODO: see if we should use local or session storage?
-    DEFAULT_OPTIONS = 
+    DEFAULT_CACHE_OPTIONS = 
       maxAge: 600000 # 10 minutes
       recycleFreq: 300000 # 5 minutes
       deleteOnExpire: 'aggressive' #remove items from the cache when they expire
 
+    DEFAULT_HTTP_OPTIONS = {}      
+
     #Factory function that creates Model Services
     (url, options) ->
-      options = angular.extend({}, DEFAULT_OPTIONS, options)
+      unless options?
+        options = {}
+      cacheOptions = angular.extend({}, DEFAULT_CACHE_OPTIONS, options.cacheOptions)
 
       class Model
+        @httpConfig: angular.extend({}, options.httpConfig, DEFAULT_HTTP_OPTIONS)
         constructor: (value) ->
           angular.copy(value || {}, this)
           # if this model is not in the cache then add it
@@ -25,13 +30,16 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
         _modelCollection = []
         _collectionLoaded = false
         #set up expire function. have to do it here so it can access private vars/functions
-        options.onExpire = (key, model) ->
+        cacheOptions.onExpire = (key, model) ->
           # re-add the 'expired' model to the cache
           _modelCache.put(key, model)
           #if no current get is in progress go and update the model
           if not _getPromiseMap[+key] # check if a int key exists
             # get the most recent version of the model from the backend
-            _getPromiseMap[+key] = $http.get(url+key) #note added the int key to the map
+            config = angular.extend {}, @httpConfig, 
+              method: "GET"
+              url: "#{url}/#{key}"
+            _getPromiseMap[+key] = $http(config) #note added the int key to the map
             .then (successResponse) ->
               delete _getPromiseMap[+key]
               return _updateModel(successResponse.data)
@@ -40,7 +48,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
               delete _getPromiseMap[+key]
               return _removeModel(model)
 
-        _modelCache = $angularCacheFactory url, options
+        _modelCache = $angularCacheFactory url, cacheOptions
         
         #add a model to the cache and collection
         _addModel = (modelData) ->
@@ -79,7 +87,6 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           return
 
         @url: url
-
         # get a model from the backend and add it to the cache and collection array.
         # There are 4 ways to handle getting a model
         # case 1: a request for that particular model id is pending so return that promise
@@ -88,7 +95,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
         # case 3: forceGet is true so go to the backend and get the model
         # case 4: the model is not in the cache so get it from the backend and resolve it
         # httpOptions is a list of options that can extend the $http.get request.
-        @get = (modelId, forceGet=false, httpOptions={}) ->
+        @get: (modelId, forceGet=false, httpOptions={}) =>
           # case 1
           if _getPromiseMap[modelId]?
             return _getPromiseMap[modelId]
@@ -99,11 +106,9 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
             deferred.resolve model # case 2
           else # case 3 and 4
             _getPromiseMap[modelId] = deferred.promise
-            
-            httpObject = angular.extend {}, httpOptions,
+            httpObject = angular.extend {}, @httpConfig, httpOptions,
               method: 'GET'
-              url: @url+modelId
-
+              url: @url+"/"+modelId
             $http(httpObject)
             .then (successResponse) ->
               if _modelCache.get("#{modelId}")?
@@ -125,7 +130,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
         # case 2: the collection has been loaded and we are not doing a force get return the collection array
         # case 4: forceGet is true so go to the backend and refresh what we have in the cache
         # case 3: we haven't loaded the collection yet so load it and add all models to the cache and collection array
-        @getCollection = (forceGet = false, httpOptions={}) ->
+        @getCollection: (forceGet = false, httpOptions={}) =>
           # case 1
           if _getCollectionPromise?
             return _getCollectionPromise
@@ -138,8 +143,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           else # case 3 and 4
             _collectionLoaded = true
             _getCollectionPromise = deferred.promise
-
-            httpObject = angular.extend {}, httpOptions,
+            httpObject = angular.extend {}, @httpConfig, httpOptions,
               method: 'GET'
               url: @url
 
@@ -155,67 +159,67 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
 
         # save the existing model to the backend and update the model in the
         # cache to match it
-        @save = (model, httpOptions={}) ->
+        @save: (model, httpOptions={}) ->
           unless model.id?
             throw new Error "Model must have an id property to be saved"
-
-          httpObject = angular.extend {}, httpOptions,
-            method: 'POST'
-            url: @url + model.id
+          
+          httpObject = angular.extend {}, @httpConfig, httpOptions,
+            method: if options.postSave then "POST" else "PUT"
+            url: @url+"/"+model.id
             data: 
               model
 
           $http(httpObject)
           .then (successResponse) ->
             # Now that we've saved the model add the updated model to the cached/collection
-            return _updateModel successResponse.data
+            _updateModel successResponse.data
           , (errorResponse) ->
-            return errorResponse
-
+            return $q.reject(errorResponse)
+  
         # create a model on the backend from the data passed to this function 
         # and on success add it to the cache and return the created/cached model
-        @create = (modelData, httpOptions={}) ->
+        @create: (modelData, httpOptions={}) =>
           if modelData.id?
             throw new Error "Can not create new model that already has an id set"
 
-          httpObject = angular.extend {}, httpOptions,
+          httpObject = angular.extend {}, @httpConfig, httpOptions,
             method: 'POST'
             url: @url
             data:
               modelData
 
-          $http(httpObject)
+          return $http(httpObject)
           .then (successResponse) ->
             # Now that we've created the model on the back end we need to
             # add the model into the modelCache and the collection.
             return _addModel successResponse.data
           , (errorResponse) ->
-            return errorResponse
+            return $q.reject(errorResponse)
 
         # delete a model from the backend and on sucess remove it from the
         # modelCache
-        @delete = (model, httpOptions={}) ->
-          httpObject = angular.extend {}, httpOptions,
+        @delete: (model, httpOptions={}) =>
+          httpObject = angular.extend {}, @httpConfig, httpOptions,
             method: 'DELETE'
-            url: @url + model.id
+            url: @url+"/"+model.id
 
           return $http(httpObject)
           .then (successResponse) ->
             _removeModel(model)
             return successResponse
           , (errorResponse) ->
-            return errorResponse
+            return $q.reject(errorResponse)
 
         # instance methods that you can call on an instantiated model 
         # instead of using the static methods. They call the static
         # methods with the correct data.
-        $get: (forceGet = false, httpOptions={}) ->
+        $get: (forceGet = false, httpOptions={}) =>
           return Model.get(@id, forceGet, httpOptions)
 
-        $save: (httpOptions={}) ->
+        $save: (httpOptions={}) =>
            return Model.save(this, httpOptions)
 
-        $delete: (httpOptions={}) ->
+        $delete: (httpOptions={}) =>
           return Model.delete(this, httpOptions)
 
       return Model

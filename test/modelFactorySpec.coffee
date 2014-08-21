@@ -14,20 +14,21 @@ describe 'Model Factory', ->
       id: 3
       name: "model3"
     ]
-  modelUrl = "test.com/model/"
+  modelUrl = "test.com/model"
   modelFactory = null
   httpBackend = null
   angularCache = null
+  url = null
   rootScope = null
 
   beforeEach ->
     module('rjmetrics.model-factory')
 
-  beforeEach inject (_modelFactory_, _$httpBackend_, _$angularCacheFactory_, _$rootScope_) ->
+  beforeEach inject (_modelFactory_, _$httpBackend_, $angularCacheFactory, $q, $rootScope) ->
     modelFactory = _modelFactory_
     httpBackend = _$httpBackend_
-    angularCache = _$angularCacheFactory_
-    rootScope = _$rootScope_
+    angularCache = $angularCacheFactory
+    rootScope = $rootScope
 
   afterEach ->
     angularCache.get(modelUrl).destroy()
@@ -53,7 +54,7 @@ describe 'Model Factory', ->
     expect(model instanceof Model).toBeTruthy()
     
   it "gets a model and stores it in the cache", ->
-    httpBackend.expectGET(new RegExp("#{modelUrl}1"))
+    httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
     .respond 200, modelList[0]
 
     Model = modelFactory(modelUrl)
@@ -75,7 +76,7 @@ describe 'Model Factory', ->
     expect(aModel2).toBe(aModel)
 
   it "gets a model, sending appropriate parameters in the get request via httpOptions", ->
-    httpBackend.expectGET("#{modelUrl}1?data=true&query=true")
+    httpBackend.expectGET("#{modelUrl}/1?data=true&query=true")
     .respond 200, modelList[0]
 
     httpOptions = 
@@ -92,7 +93,7 @@ describe 'Model Factory', ->
     httpBackend.flush()
 
     # Make sure the object ins
-    httpBackend.expectGET("#{modelUrl}1?data=true&query=true")
+    httpBackend.expectGET("#{modelUrl}/1?data=true&query=true")
     .respond 200, modelList[0]
 
     aModel2 = null
@@ -103,7 +104,7 @@ describe 'Model Factory', ->
     expect(aModel2).toBe(aModel)
 
   it "gets a collection of models and stores them in the cache", ->
-    httpBackend.expectGET(new RegExp("#{modelUrl}1"))
+    httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
     .respond 200, modelList[0]
 
     httpBackend.expectGET(new RegExp("#{modelUrl}"))
@@ -192,7 +193,7 @@ describe 'Model Factory', ->
     backendModel = 
       id: 5
       name: "model5"
-    httpBackend.expectPOST(new RegExp("#{modelUrl}5"))
+    httpBackend.expectPUT(new RegExp("#{modelUrl}/5"))
     .respond 200, backendModel
 
     Model = modelFactory(modelUrl)
@@ -209,7 +210,7 @@ describe 'Model Factory', ->
     expect(aModel.id).toBe(backendModel.id)
     expect(aModel.name).toBe(backendModel.name)
 
-    httpBackend.expectPOST(new RegExp("#{modelUrl}5"))
+    httpBackend.expectPUT(new RegExp("#{modelUrl}/5"))
     .respond 200, backendModel
 
     aModel2 = null
@@ -231,7 +232,7 @@ describe 'Model Factory', ->
       id: 5
       name: "model5"
 
-    httpBackend.expectPOST("#{modelUrl}5", aModel, {"Authorization":"12345==","Accept":"application/json, text/plain, */*","Content-Type":"application/json;charset=utf-8"}
+    httpBackend.expectPUT("#{modelUrl}/5", aModel, {"Authorization":"12345==","Accept":"application/json, text/plain, */*","Content-Type":"application/json;charset=utf-8"}
     ).respond 200, backendModel
 
     httpOptions = 
@@ -243,7 +244,7 @@ describe 'Model Factory', ->
     httpBackend.flush()
 
     # Ensure that the instance function also allows passing httpOptions.
-    httpBackend.expectPOST("#{modelUrl}5", aModel, {"Authorization":"12345==","Accept":"application/json, text/plain, */*","Content-Type":"application/json;charset=utf-8"}
+    httpBackend.expectPUT("#{modelUrl}/5", aModel, {"Authorization":"12345==","Accept":"application/json, text/plain, */*","Content-Type":"application/json;charset=utf-8"}
     ).respond 200, backendModel
 
     aModel.$save(httpOptions)
@@ -298,7 +299,7 @@ describe 'Model Factory', ->
 
     httpBackend.flush()
 
-    httpBackend.expectDELETE(new RegExp("#{modelUrl}5"))
+    httpBackend.expectDELETE(new RegExp("#{modelUrl}/5"))
     .respond 200
 
     aModel.$delete()
@@ -325,7 +326,7 @@ describe 'Model Factory', ->
 
     httpBackend.flush()
 
-    httpBackend.expectDELETE(new RegExp("#{modelUrl}5"), {"Authorization":"12345==","Accept":"application/json, text/plain, */*"}
+    httpBackend.expectDELETE(new RegExp("#{modelUrl}/5"), {"Authorization":"12345==","Accept":"application/json, text/plain, */*"}
     ).respond 200
 
     Model.delete modelData, 
@@ -345,7 +346,7 @@ describe 'Model Factory', ->
 
     httpBackend.flush()
 
-    httpBackend.expectDELETE(new RegExp("#{modelUrl}5"), {"Authorization":"12345==","Accept":"application/json, text/plain, */*"}
+    httpBackend.expectDELETE(new RegExp("#{modelUrl}/5"), {"Authorization":"12345==","Accept":"application/json, text/plain, */*"}
     ).respond 200
 
     aModel.$delete({headers: 'Authorization': '12345=='})
@@ -364,10 +365,10 @@ describe 'Model Factory', ->
     expect( () -> Model.create(aModel)).toThrow(new Error("Can not create new model that already has an id set"))
 
   it "uses the same promise while waiting for the backend to return a get request", ->
-    httpBackend.expectGET(new RegExp("#{modelUrl}1"))
+    httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
       .respond 200, modelList[0]
 
-    httpBackend.expectGET(new RegExp("#{modelUrl}2"))
+    httpBackend.expectGET(new RegExp("#{modelUrl}/2"))
       .respond 200, modelList[1]
 
     httpBackend.expectGET(new RegExp("#{modelUrl}"))
@@ -393,10 +394,11 @@ describe 'Model Factory', ->
   it "expires and refreshes or removes the object from the cache", ->
     aModel = null
     Model = modelFactory modelUrl, 
+      cacheOptions:
         maxAge: 50
-        recycleFreq: 1
+        recycleFreq: 10
     runs ->
-      httpBackend.expectGET(new RegExp("#{modelUrl}1"))
+      httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
         .respond 200, modelList[0]
 
       Model.get(1).then (m) -> aModel = m
@@ -406,10 +408,10 @@ describe 'Model Factory', ->
       newModel = angular.copy modelList[0]
       newModel.name = "updated"
 
-      httpBackend.expectGET(new RegExp("#{modelUrl}1"))
+      httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
       .respond 200, newModel
 
-    waits(200)
+    waits(150)
 
     runs ->
       httpBackend.flush()
@@ -422,16 +424,16 @@ describe 'Model Factory', ->
       expect(aModel2.name).toBe("updated")
       expect(aModel.id).toBe(aModel2.id)
 
-      httpBackend.expectGET(new RegExp("#{modelUrl}1"))
+      httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
         .respond 404
 
-    waits(200)
+    waits(150)
 
     runs ->
 
       httpBackend.flush()
 
-      httpBackend.expectGET(new RegExp("#{modelUrl}1"))
+      httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
         .respond 404
 
       error = null;
@@ -441,4 +443,100 @@ describe 'Model Factory', ->
 
       expect(error.status).toBe(404)
 
+  it "@get returns a rejected promise in the event of an error.", ->
+    httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
+      .respond 400
 
+    Model = modelFactory modelUrl
+
+    promise = Model.get(1)
+
+    rejectFunc = jasmine.createSpy('rejectFunc')
+
+    promise.then null, rejectFunc
+
+    httpBackend.flush()
+
+    rootScope.$apply()
+
+    expect(rejectFunc).toHaveBeenCalled()
+
+  it "@getCollection returns a rejected promise in the event of an error.", ->
+    httpBackend.expectGET(new RegExp("#{modelUrl}"))
+      .respond 400
+
+    Model = modelFactory modelUrl
+
+    promise = Model.getCollection()
+
+    rejectFunc = jasmine.createSpy('rejectFunc')
+
+    promise.then null, rejectFunc
+
+    httpBackend.flush()
+
+    rootScope.$apply()
+
+    expect(rejectFunc).toHaveBeenCalled()
+
+  it "@save returns a rejected promise in the event of an error.", ->
+    httpBackend.expectPUT(new RegExp("#{modelUrl}/1"))
+      .respond 400
+
+    Model = modelFactory modelUrl
+
+    aModel = new Model
+      id: 1
+      name: "model5"
+    promise = Model.save(aModel)
+
+    rejectFunc = jasmine.createSpy('rejectFunc')
+
+    promise.then null, rejectFunc
+
+    httpBackend.flush()
+
+    rootScope.$apply()
+
+    expect(rejectFunc).toHaveBeenCalled()
+
+  it "@create returns a rejected promise in the event of an error.", ->
+    httpBackend.expectPOST(new RegExp("#{modelUrl}"))
+      .respond 400
+
+    Model = modelFactory modelUrl
+
+    aModel = new Model
+      name: "model5"
+    promise = Model.create(aModel)
+
+    rejectFunc = jasmine.createSpy('rejectFunc')
+
+    promise.then null, rejectFunc
+
+    httpBackend.flush()
+
+    rootScope.$apply()
+
+    expect(rejectFunc).toHaveBeenCalled()
+
+  it "@delete returns a rejected promise in the event of an error.", ->
+    httpBackend.expectDELETE(new RegExp("#{modelUrl}/1"))
+      .respond 400
+
+    Model = modelFactory modelUrl
+
+    aModel = new Model
+      id: 1
+      name: "model5"
+    promise = Model.delete(aModel)
+
+    rejectFunc = jasmine.createSpy('rejectFunc')
+
+    promise.then null, rejectFunc
+
+    httpBackend.flush()
+
+    rootScope.$apply()
+
+    expect(rejectFunc).toHaveBeenCalled()

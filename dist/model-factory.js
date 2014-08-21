@@ -1,3 +1,5 @@
+var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
 angular.module('rjmetrics.model-factory', ['ng', 'jmdobry.angular-cache']);
 
 angular.module('rjmetrics.model-factory').directive("formSubmittee", [
@@ -61,19 +63,28 @@ angular.module('rjmetrics.model-factory').directive("formSubmitter", [
 
 angular.module('rjmetrics.model-factory').factory("modelFactory", [
   "$q", "$http", "$angularCacheFactory", function($q, $http, $angularCacheFactory) {
-    var DEFAULT_OPTIONS;
-    DEFAULT_OPTIONS = {
+    var DEFAULT_CACHE_OPTIONS, DEFAULT_HTTP_OPTIONS;
+    DEFAULT_CACHE_OPTIONS = {
       maxAge: 600000,
       recycleFreq: 300000,
       deleteOnExpire: 'aggressive'
     };
+    DEFAULT_HTTP_OPTIONS = {};
     return function(url, options) {
-      var Model;
-      options = angular.extend({}, DEFAULT_OPTIONS, options);
+      var Model, cacheOptions;
+      if (options == null) {
+        options = {};
+      }
+      cacheOptions = angular.extend({}, DEFAULT_CACHE_OPTIONS, options.cacheOptions);
       Model = (function() {
         var _addCollection, _addModel, _collectionLoaded, _getCollectionPromise, _getPromiseMap, _modelCache, _modelCollection, _removeModel, _updateModel;
 
+        Model.httpConfig = angular.extend({}, options.httpConfig, DEFAULT_HTTP_OPTIONS);
+
         function Model(value) {
+          this.$delete = __bind(this.$delete, this);
+          this.$save = __bind(this.$save, this);
+          this.$get = __bind(this.$get, this);
           angular.copy(value || {}, this);
           if (!_modelCache.get("" + this.id)) {
             _modelCache.put("" + this.id, this);
@@ -88,10 +99,15 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
 
         _collectionLoaded = false;
 
-        options.onExpire = function(key, model) {
+        cacheOptions.onExpire = function(key, model) {
+          var config;
           _modelCache.put(key, model);
           if (!_getPromiseMap[+key]) {
-            return _getPromiseMap[+key] = $http.get(url + key).then(function(successResponse) {
+            config = angular.extend({}, this.httpConfig, {
+              method: "GET",
+              url: "" + url + "/" + key
+            });
+            return _getPromiseMap[+key] = $http(config).then(function(successResponse) {
               delete _getPromiseMap[+key];
               return _updateModel(successResponse.data);
             }, function(errorResponse) {
@@ -101,7 +117,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           }
         };
 
-        _modelCache = $angularCacheFactory(url, options);
+        _modelCache = $angularCacheFactory(url, cacheOptions);
 
         _addModel = function(modelData) {
           var model;
@@ -159,9 +175,9 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
             deferred.resolve(model);
           } else {
             _getPromiseMap[modelId] = deferred.promise;
-            httpObject = angular.extend({}, httpOptions, {
+            httpObject = angular.extend({}, Model.httpConfig, httpOptions, {
               method: 'GET',
-              url: this.url + modelId
+              url: Model.url + "/" + modelId
             });
             $http(httpObject).then(function(successResponse) {
               if (_modelCache.get("" + modelId) != null) {
@@ -195,9 +211,9 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           } else {
             _collectionLoaded = true;
             _getCollectionPromise = deferred.promise;
-            httpObject = angular.extend({}, httpOptions, {
+            httpObject = angular.extend({}, Model.httpConfig, httpOptions, {
               method: 'GET',
-              url: this.url
+              url: Model.url
             });
             $http(httpObject).then(function(successResponse) {
               deferred.resolve(_addCollection(successResponse.data));
@@ -218,15 +234,15 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           if (model.id == null) {
             throw new Error("Model must have an id property to be saved");
           }
-          httpObject = angular.extend({}, httpOptions, {
-            method: 'POST',
-            url: this.url + model.id,
+          httpObject = angular.extend({}, this.httpConfig, httpOptions, {
+            method: options.postSave ? "POST" : "PUT",
+            url: this.url + "/" + model.id,
             data: model
           });
           return $http(httpObject).then(function(successResponse) {
             return _updateModel(successResponse.data);
           }, function(errorResponse) {
-            return errorResponse;
+            return $q.reject(errorResponse);
           });
         };
 
@@ -238,15 +254,15 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           if (modelData.id != null) {
             throw new Error("Can not create new model that already has an id set");
           }
-          httpObject = angular.extend({}, httpOptions, {
+          httpObject = angular.extend({}, Model.httpConfig, httpOptions, {
             method: 'POST',
-            url: this.url,
+            url: Model.url,
             data: modelData
           });
           return $http(httpObject).then(function(successResponse) {
             return _addModel(successResponse.data);
           }, function(errorResponse) {
-            return errorResponse;
+            return $q.reject(errorResponse);
           });
         };
 
@@ -255,15 +271,15 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           if (httpOptions == null) {
             httpOptions = {};
           }
-          httpObject = angular.extend({}, httpOptions, {
+          httpObject = angular.extend({}, Model.httpConfig, httpOptions, {
             method: 'DELETE',
-            url: this.url + model.id
+            url: Model.url + "/" + model.id
           });
           return $http(httpObject).then(function(successResponse) {
             _removeModel(model);
             return successResponse;
           }, function(errorResponse) {
-            return errorResponse;
+            return $q.reject(errorResponse);
           });
         };
 
