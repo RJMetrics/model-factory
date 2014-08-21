@@ -16,7 +16,10 @@
     "node_modules",
     "bower_components",
     "test",
-    "src"
+    "src",
+    "gruntfile.js",
+    "karma.conf.js",
+    "package.json"
   ],
   "devDependencies": {
     "angular": "~1.2.15",
