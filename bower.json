@@ -16,17 +16,12 @@
     "node_modules",
     "bower_components",
     "test",
-    "tests"
+    "src"
   ],
   "devDependencies": {
     "angular": "~1.2.15",
     "angular-cache": "~2.3.3",
     "angular-mocks": "~1.2.15",
     "underscore": "~1.6.0"
-  },
-  "ignore": ["src",
-             "test",
-             "gruntfile.js"
-             "karma.conf.js"
-             "package.json"]
+  }
 }
