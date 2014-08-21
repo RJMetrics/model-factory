@@ -1,6 +1,6 @@
 {
   "name": "model-factory",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "homepage": "https://github.com/RJMetrics/model-factory",
   "description": "A tool for building RESTful models for AngularJS",
   "moduleType": [
@@ -23,5 +23,10 @@
     "angular-cache": "~2.3.3",
     "angular-mocks": "~1.2.15",
     "underscore": "~1.6.0"
-  }
+  },
+  "ignore": ["src",
+             "test",
+             "gruntfile.js"
+             "karma.conf.js"
+             "package.json"]
 }
