@@ -1,0 +1,7 @@
+dependencies:
+	override:
+		- npm install
+		- bower insall
+test:
+	override:
+		- grunt karma:continuous
