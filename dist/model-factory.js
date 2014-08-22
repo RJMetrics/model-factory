@@ -77,7 +77,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
       }
       cacheOptions = angular.extend({}, DEFAULT_CACHE_OPTIONS, options.cacheOptions);
       Model = (function() {
-        var _addCollection, _addModel, _collectionLoaded, _getCollectionPromise, _getPromiseMap, _modelCache, _modelCollection, _removeModel, _updateModel;
+        var _addCollection, _addModel, _addQueryCollection, _collectionLoaded, _getCollectionPromise, _getPromiseMap, _modelCache, _modelCollection, _queryMap, _queryPromiseMap, _removeModel, _updateModel;
 
         Model.httpConfig = angular.extend({}, options.httpConfig, DEFAULT_HTTP_OPTIONS);
 
@@ -95,9 +95,13 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
 
         _getCollectionPromise = null;
 
+        _queryPromiseMap = {};
+
         _modelCollection = [];
 
         _collectionLoaded = false;
+
+        _queryMap = {};
 
         cacheOptions.onExpire = function(key, model) {
           var config;
@@ -149,9 +153,37 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           return _modelCollection;
         };
 
+        _addQueryCollection = function(params, collection) {
+          var model, queryCollection, _i, _len;
+          queryCollection = _(collection).map(function(model) {
+            if (_modelCache.get("" + model.id)) {
+              return _updateModel(model);
+            } else {
+              return _addModel(model);
+            }
+          });
+          if (_queryMap[params] != null) {
+            _queryMap[params].length = 0;
+            for (_i = 0, _len = queryCollection.length; _i < _len; _i++) {
+              model = queryCollection[_i];
+              _queryMap[params].push(model);
+            }
+          } else {
+            _queryMap[params] = queryCollection;
+          }
+          return _queryMap[params];
+        };
+
         _removeModel = function(model) {
+          var collection, params, _i, _len;
           if (_modelCollection.length > 0) {
             _modelCollection.splice(_modelCollection.indexOf(model), 1);
+          }
+          for (collection = _i = 0, _len = _queryMap.length; _i < _len; collection = ++_i) {
+            params = _queryMap[collection];
+            if (collection.length > 0) {
+              collection.splice(collection.indexOf(model), 1);
+            }
           }
           _modelCache.remove("" + model.id);
         };
@@ -189,6 +221,48 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
             }, function(errorResponse) {
               deferred.reject(errorResponse);
               return delete _getPromiseMap[modelId];
+            });
+          }
+          return deferred.promise;
+        };
+
+        Model.query = function(params, forceGet, httpOptions) {
+          var deferred, httpObject, paramString, paramStringArray, sortedKeys;
+          if (params == null) {
+            params = {};
+          }
+          if (forceGet == null) {
+            forceGet = false;
+          }
+          if (httpOptions == null) {
+            httpOptions = {};
+          }
+          sortedKeys = Object.keys(params).sort();
+          paramStringArray = _(sortedKeys).map(function(key) {
+            return "" + key + "=" + params[key];
+          });
+          paramString = paramStringArray.join("&");
+          if (_queryPromiseMap[paramString] != null) {
+            return _queryPromiseMap[paramString];
+          }
+          deferred = $q.defer();
+          if (!forceGet && (_queryMap[paramString] != null)) {
+            deferred.resolve(_queryMap[paramString]);
+          } else {
+            _queryPromiseMap[paramString] = deferred.promise;
+            httpObject = angular.extend({}, Model.httpConfig, httpOptions, {
+              method: 'GET',
+              url: Model.url,
+              params: params
+            });
+            $http(httpObject).then(function(successResponse) {
+              var queryCollection;
+              queryCollection = _addQueryCollection(paramString, successResponse.data);
+              deferred.resolve(queryCollection);
+              return delete _queryPromiseMap[paramString];
+            }, function(errorResponse) {
+              deferred.reject(errorResponse);
+              return delete _queryPromiseMap[paramString];
             });
           }
           return deferred.promise;

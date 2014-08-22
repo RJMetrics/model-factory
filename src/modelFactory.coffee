@@ -27,8 +27,10 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
         # private attributes/functions
         _getPromiseMap = {}
         _getCollectionPromise = null
+        _queryPromiseMap = {}
         _modelCollection = []
         _collectionLoaded = false
+        _queryMap = {}
         #set up expire function. have to do it here so it can access private vars/functions
         cacheOptions.onExpire = (key, model) ->
           # re-add the 'expired' model to the cache
@@ -52,7 +54,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
         
         #add a model to the cache and collection
         _addModel = (modelData) ->
-          model = new Model(modelData) #we are craeting a new model to add to the cache
+          model = new Model(modelData) #we are creating a new model to add to the cache
           _modelCollection.push model
           return model
 
@@ -78,10 +80,29 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
 
           return _modelCollection
 
+        _addQueryCollection = (params, collection) ->
+          queryCollection = _(collection).map (model) ->
+            if _modelCache.get("#{model.id}")
+                return _updateModel(model)
+              else
+                return _addModel model
+
+          if _queryMap[params]?
+            _queryMap[params].length = 0
+            for model in queryCollection
+              _queryMap[params].push model
+          else
+            _queryMap[params] = queryCollection
+
+          return _queryMap[params]
+
         # remove a model from the cache and collection
         _removeModel = (model) ->
           if _modelCollection.length > 0
             _modelCollection.splice(_modelCollection.indexOf(model), 1)
+          for params, collection in _queryMap
+            if collection.length > 0
+              collection.splice(collection.indexOf(model), 1)
           _modelCache.remove "#{model.id}"
 
           return
@@ -119,6 +140,37 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
             , (errorResponse) ->
               deferred.reject errorResponse
               delete _getPromiseMap[modelId]
+
+          return deferred.promise
+
+        #
+        @query: (params= {}, forceGet = false, httpOptions={}) =>
+          #alphabatize query param string
+          sortedKeys = Object.keys(params).sort()
+          paramStringArray = _(sortedKeys).map (key) =>
+            "#{key}=#{params[key]}"
+          paramString = paramStringArray.join("&")
+
+          if _queryPromiseMap[paramString]?
+            return _queryPromiseMap[paramString]
+
+          deferred = $q.defer()
+          if not forceGet and _queryMap[paramString]?
+            deferred.resolve _queryMap[paramString]
+          else
+            _queryPromiseMap[paramString] = deferred.promise
+            httpObject = angular.extend {}, @httpConfig, httpOptions,
+              method: 'GET'
+              url: @url
+              params: params
+            $http(httpObject)
+            .then (successResponse) ->
+              queryCollection = _addQueryCollection(paramString, successResponse.data)
+              deferred.resolve queryCollection
+              delete _queryPromiseMap[paramString]
+            , (errorResponse) ->
+              deferred.reject(errorResponse)
+              delete _queryPromiseMap[paramString]
 
           return deferred.promise
 

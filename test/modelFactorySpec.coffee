@@ -540,3 +540,119 @@ describe 'Model Factory', ->
     rootScope.$apply()
 
     expect(rejectFunc).toHaveBeenCalled()
+
+  it "@query properly queries the endpoint and stores the resulting models in the cache and in the _queryMap", ->
+    modelData = [
+      id: 1
+      name: "model5"
+    ]
+    httpBackend.expectGET(new RegExp("#{modelUrl}\\?name=model5")).respond(200, modelData)
+    
+    queryResult = null
+    Model = modelFactory modelUrl
+
+    promise = Model.query({name: "model5"})
+    promise.then (data) -> queryResult = data
+
+    httpBackend.flush()
+    rootScope.$apply()
+
+    expect(queryResult.length).toBe(1)
+    expect(queryResult[0].id).toBe(modelData[0].id)
+
+    queryResult2 = null
+    promise2 = Model.query({name: "model5"})
+    promise2.then (data) -> queryResult2 = data
+
+    rootScope.$apply()
+
+    expect(queryResult2).toBe(queryResult)
+
+   it "@query returns a rejected promise in the event of an error.", ->
+    httpBackend.expectGET(new RegExp("#{modelUrl}\\?name=model5"))
+      .respond 400
+
+    Model = modelFactory modelUrl
+
+    promise = Model.query({name: "model5"})
+
+    rejectFunc = jasmine.createSpy('rejectFunc')
+
+    promise.then null, rejectFunc
+
+    httpBackend.flush()
+
+    rootScope.$apply()
+
+    expect(rejectFunc).toHaveBeenCalled()
+
+  it "@query properly queries the endpoint and stores the results for differnt param order", ->
+    modelData = [
+      id: 1
+      name: "model5"
+      date: 1
+    ]
+    httpBackend.expectGET(new RegExp("#{modelUrl}\\?date=1&name=model5")).respond(200, modelData)
+    
+    queryResult = null
+    Model = modelFactory modelUrl
+
+    promise = Model.query 
+      name: "model5"
+      date: 1
+    promise.then (data) -> queryResult = data
+
+    httpBackend.flush()
+    rootScope.$apply()
+
+    expect(queryResult.length).toBe(1)
+    expect(queryResult[0].id).toBe(modelData[0].id)
+
+    queryResult2 = null
+    promise2 = Model.query
+      date: 1
+      name: "model5"
+      
+    promise2.then (data) -> queryResult2 = data
+
+    rootScope.$apply()
+
+    expect(queryResult2).toBe(queryResult)
+
+  it "@query properly queries the endpoint and stores the results for differnt param order", ->
+    modelData = [
+      id: 1
+      name: "model5"
+    ]
+    httpBackend.expectGET(new RegExp("#{modelUrl}\\?name=model5")).respond(200, modelData)
+    
+    queryResult = null
+    Model = modelFactory modelUrl
+
+    promise = Model.query 
+      name: "model5"
+    promise.then (data) -> queryResult = data
+
+    httpBackend.flush()
+    rootScope.$apply()
+
+    expect(queryResult.length).toBe(1)
+    expect(queryResult[0].id).toBe(modelData[0].id)
+
+    modelData2 = [
+      id: 1
+      name: "model4"
+    ]
+
+    httpBackend.expectGET(new RegExp("#{modelUrl}\\?name=model5")).respond(200, modelData2)
+
+    queryResult2 = null
+    promise2 = Model.query({name: "model5"}, true)
+      
+    promise2.then (data) -> queryResult2 = data
+
+    httpBackend.flush()
+    rootScope.$apply()
+
+    expect(queryResult2).toBe(queryResult) 
+
