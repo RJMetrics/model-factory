@@ -4,12 +4,12 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
   "$angularCacheFactory"
   ($q, $http, $angularCacheFactory) ->
     #TODO: see if we should use local or session storage?
-    DEFAULT_CACHE_OPTIONS = 
+    DEFAULT_CACHE_OPTIONS =
       maxAge: 600000 # 10 minutes
       recycleFreq: 300000 # 5 minutes
       deleteOnExpire: 'aggressive' #remove items from the cache when they expire
 
-    DEFAULT_HTTP_OPTIONS = {}      
+    DEFAULT_HTTP_OPTIONS = {}
 
     #Factory function that creates Model Services
     (url, options) ->
@@ -38,7 +38,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           #if no current get is in progress go and update the model
           if not _getPromiseMap[+key] # check if a int key exists
             # get the most recent version of the model from the backend
-            config = angular.extend {}, @httpConfig, 
+            config = angular.extend {}, @httpConfig,
               method: "GET"
               url: "#{url}/#{key}"
             _getPromiseMap[+key] = $http(config) #note added the int key to the map
@@ -51,7 +51,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
               return _removeModel(model)
 
         _modelCache = $angularCacheFactory url, cacheOptions
-        
+
         #add a model to the cache and collection
         _addModel = (modelData) ->
           model = new Model(modelData) #we are creating a new model to add to the cache
@@ -120,7 +120,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           # case 1
           if _getPromiseMap[modelId]?
             return _getPromiseMap[modelId]
-          
+
           deferred = $q.defer()
           model = _modelCache.get "#{modelId}"
           if not forceGet and model?
@@ -176,7 +176,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
 
         # get all the models for this resource url and store them in the cache
         # and in the collection array. By passing true into the call it will force the collection
-        # to refresh and match what is in the backend. 
+        # to refresh and match what is in the backend.
         # There are 4 possible ways to handle getting a collection
         # case 1: a request is pending with the backend. return the existing promise
         # case 2: the collection has been loaded and we are not doing a force get return the collection array
@@ -200,7 +200,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
               url: @url
 
             $http(httpObject)
-            .then (successResponse) ->                
+            .then (successResponse) ->
               deferred.resolve _addCollection(successResponse.data)
               _getCollectionPromise = null
             , (errorResponse) ->
@@ -211,14 +211,14 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
 
         # save the existing model to the backend and update the model in the
         # cache to match it
-        @save: (model, httpOptions={}) ->
+        @save: (model, httpOptions={}) =>
           unless model.id?
             throw new Error "Model must have an id property to be saved"
-          
+
           httpObject = angular.extend {}, @httpConfig, httpOptions,
             method: if options.postSave then "POST" else "PUT"
-            url: @url+"/"+model.id
-            data: 
+            url: @url +"/"+model.id
+            data:
               model
 
           $http(httpObject)
@@ -227,18 +227,18 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
             _updateModel successResponse.data
           , (errorResponse) ->
             return $q.reject(errorResponse)
-  
-        # create a model on the backend from the data passed to this function 
+
+        # create a model on the backend from the data passed to this function
         # and on success add it to the cache and return the created/cached model
-        @create: (modelData, httpOptions={}) =>
-          if modelData.id?
+        @create: (model, httpOptions={}) =>
+          if model.id?
             throw new Error "Can not create new model that already has an id set"
 
           httpObject = angular.extend {}, @httpConfig, httpOptions,
             method: 'POST'
             url: @url
             data:
-              modelData
+              model
 
           return $http(httpObject)
           .then (successResponse) ->
@@ -262,7 +262,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           , (errorResponse) ->
             return $q.reject(errorResponse)
 
-        # instance methods that you can call on an instantiated model 
+        # instance methods that you can call on an instantiated model
         # instead of using the static methods. They call the static
         # methods with the correct data.
         $get: (forceGet = false, httpOptions={}) =>
