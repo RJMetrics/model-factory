@@ -308,9 +308,9 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           if (model.id == null) {
             throw new Error("Model must have an id property to be saved");
           }
-          httpObject = angular.extend({}, this.httpConfig, httpOptions, {
+          httpObject = angular.extend({}, Model.httpConfig, httpOptions, {
             method: options.postSave ? "POST" : "PUT",
-            url: this.url + "/" + model.id,
+            url: Model.url + "/" + model.id,
             data: model
           });
           return $http(httpObject).then(function(successResponse) {
@@ -320,18 +320,18 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           });
         };
 
-        Model.create = function(modelData, httpOptions) {
+        Model.create = function(model, httpOptions) {
           var httpObject;
           if (httpOptions == null) {
             httpOptions = {};
           }
-          if (modelData.id != null) {
+          if (model.id != null) {
             throw new Error("Can not create new model that already has an id set");
           }
           httpObject = angular.extend({}, Model.httpConfig, httpOptions, {
             method: 'POST',
             url: Model.url,
-            data: modelData
+            data: model
           });
           return $http(httpObject).then(function(successResponse) {
             return _addModel(successResponse.data);

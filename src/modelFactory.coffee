@@ -217,7 +217,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
 
           httpObject = angular.extend {}, @httpConfig, httpOptions,
             method: if options.postSave then "POST" else "PUT"
-            url: @url +"/"+model.id
+            url: @url+"/"+model.id
             data:
               model
 
