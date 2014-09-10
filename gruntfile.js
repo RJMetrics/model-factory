@@ -15,7 +15,7 @@ module.exports = function (grunt) {
             banner: '<%= banner %>'
         },
         dist: {
-            src: 'dist/modelFactory.js',
+            src: 'dist/<%= pkg.name %>.js',
             dest: 'dist/<%= pkg.name %>.min.js'
         }
       },
