@@ -17,11 +17,11 @@ angular.module('rjmetrics.model-factory').directive "formSubmittee", [
       ngModel = controllers[0]
       form = controllers[1]
 
-      # add a new 
+      # add a new
       ngModel.$parsers.push (value) ->
         if value is ngModel.$modelValue
           ngModel.$setPristine()
-        return ngModel.$modelValue
+        return ngModel.$viewValue
 
       modelGet = $parse(attrs.ngModel)
 
