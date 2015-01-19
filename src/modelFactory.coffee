@@ -20,7 +20,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
       class Model
         @httpConfig: angular.extend({}, options.httpConfig, DEFAULT_HTTP_OPTIONS)
         constructor: (value) ->
-          angular.copy(value || {}, this)
+          angular.extend(this, value || {})
           # if this model is not in the cache then add it
           unless _modelCache.get("#{@id}")
             _modelCache.put("#{@id}", this)
@@ -62,7 +62,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
         _updateModel = (modelData) ->
           model = _modelCache.get "#{modelData.id}"
           if not angular.equals(model, modelData)
-            angular.copy modelData, model
+            angular.extend model, modelData
           #TODO: revist this to see if we can preserve the collection in sessionStorage
           if not _(_modelCollection).contains(model)
             _modelCollection.push(model)
