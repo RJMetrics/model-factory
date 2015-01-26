@@ -85,7 +85,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           this.$delete = __bind(this.$delete, this);
           this.$save = __bind(this.$save, this);
           this.$get = __bind(this.$get, this);
-          angular.copy(value || {}, this);
+          angular.extend(this, value || {});
           if (!_modelCache.get("" + this.id)) {
             _modelCache.put("" + this.id, this);
           }
@@ -134,7 +134,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           var model;
           model = _modelCache.get("" + modelData.id);
           if (!angular.equals(model, modelData)) {
-            angular.copy(modelData, model);
+            angular.extend(model, modelData);
           }
           if (!_(_modelCollection).contains(model)) {
             _modelCollection.push(model);
