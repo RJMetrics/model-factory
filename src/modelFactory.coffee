@@ -5,9 +5,9 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
   ($q, $http, $angularCacheFactory) ->
     #TODO: see if we should use local or session storage?
     DEFAULT_CACHE_OPTIONS =
-      maxAge: 600000 # 10 minutes
-      recycleFreq: 300000 # 5 minutes
-      deleteOnExpire: 'aggressive' #remove items from the cache when they expire
+      maxAge: 60*60*1000 # 1 hour
+      recycleFreq: 60*60*1000 # 1 hour
+      deleteOnExpire: 'passive'
 
     DEFAULT_HTTP_OPTIONS = {}
 
