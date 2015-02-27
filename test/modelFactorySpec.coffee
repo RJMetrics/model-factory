@@ -397,6 +397,7 @@ describe 'Model Factory', ->
       cacheOptions:
         maxAge: 50
         recycleFreq: 10
+        deleteOnExpire: "aggressive"
     runs ->
       httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
         .respond 200, modelList[0]
