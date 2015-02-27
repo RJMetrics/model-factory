@@ -3,6 +3,23 @@ model-factory
 
 A tool for building RESTful models for AngularJS
 
+### Developing
+Install dependencies:
+```bash
+npm install
+bower install
+```
+
+Build:
+```bash
+grunt build
+```
+
+Watch and run unit tests:
+```bash
+grunt dev
+```
+
 #### TODO
 - docs
 - examples
