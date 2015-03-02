@@ -1,7 +1,7 @@
 'use strict'
 
 describe 'Model Factory', ->
- 
+
 
 
   modelList = [
@@ -52,7 +52,7 @@ describe 'Model Factory', ->
 
     model = new Model()
     expect(model instanceof Model).toBeTruthy()
-    
+
   it "gets a model and stores it in the cache", ->
     httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
     .respond 200, modelList[0]
@@ -79,7 +79,7 @@ describe 'Model Factory', ->
     httpBackend.expectGET("#{modelUrl}/1?data=true&query=true")
     .respond 200, modelList[0]
 
-    httpOptions = 
+    httpOptions =
       params:
         data: true
         query: true
@@ -130,7 +130,7 @@ describe 'Model Factory', ->
     collection2 = null
     Model.getCollection().then (m) -> collection2 = m
 
-    rootScope.$apply() 
+    rootScope.$apply()
 
     expect(collection2).toBe(collection)
 
@@ -149,13 +149,13 @@ describe 'Model Factory', ->
     httpBackend.flush()
 
   it "create a model and save it to the back end", ->
-    backendModel = 
+    backendModel =
       id: 5
       name: "model5"
     httpBackend.expectPOST(new RegExp("#{modelUrl}"))
     .respond 200, backendModel
 
-    modelData = 
+    modelData =
       name: "model5"
 
     Model = modelFactory(modelUrl)
@@ -169,7 +169,7 @@ describe 'Model Factory', ->
     expect(aModel.name).toBe(backendModel.name)
 
   it "creates a model, passing httpOptions appropriately", ->
-    backendModel = 
+    backendModel =
       id: 5
       name: "model5"
 
@@ -183,14 +183,14 @@ describe 'Model Factory', ->
     Model.create modelData,
       headers:
         'Authorization': '12345=='
-   
+
 
     httpBackend.flush()
 
 
 
   it "saves an existing model to the backend using static method", ->
-    backendModel = 
+    backendModel =
       id: 5
       name: "model5"
     httpBackend.expectPUT(new RegExp("#{modelUrl}/5"))
@@ -201,7 +201,7 @@ describe 'Model Factory', ->
     aModel = new Model
       id: 5
       name: "model5"
-    
+
     Model.save(aModel)
 
     httpBackend.flush()
@@ -214,7 +214,7 @@ describe 'Model Factory', ->
     .respond 200, backendModel
 
     aModel2 = null
-    aModel.$save().then (m) -> 
+    aModel.$save().then (m) ->
       aModel2 = m
 
     httpBackend.flush()
@@ -222,7 +222,7 @@ describe 'Model Factory', ->
     expect(aModel2).toBe(aModel)
 
   it "saves an existing model, passing httpOptions appropriately", ->
-    backendModel = 
+    backendModel =
       id: 5
       name: "model5"
 
@@ -235,7 +235,7 @@ describe 'Model Factory', ->
     httpBackend.expectPUT("#{modelUrl}/5", aModel, {"Authorization":"12345==","Accept":"application/json, text/plain, */*","Content-Type":"application/json;charset=utf-8"}
     ).respond 200, backendModel
 
-    httpOptions = 
+    httpOptions =
       headers:
         'Authorization': '12345=='
 
@@ -263,7 +263,7 @@ describe 'Model Factory', ->
     expect(saveSpy).toHaveBeenCalled()
 
   it "creates a model, saves it to the backend and puts it in the cache and collection", ->
-    backendModel = 
+    backendModel =
       id: 5
       name: "model5"
     httpBackend.expectPOST(new RegExp("#{modelUrl}"), name: "model5")
@@ -284,7 +284,7 @@ describe 'Model Factory', ->
     expect(angularCache.get(modelUrl).get("#{aModel.id}").id).toBe(backendModel.id)
 
   it "deletes a model and removes it from the cache and collection", ->
-    backendModel = 
+    backendModel =
       id: 5
       name: "model5"
     httpBackend.expectPOST(new RegExp("#{modelUrl}"), name: "model5")
@@ -307,13 +307,13 @@ describe 'Model Factory', ->
     httpBackend.flush()
 
   it "deletes a model, setting httpOptions appropriately", ->
-    backendModel = 
+    backendModel =
       id: 5
       name: "model5"
     httpBackend.expectPOST(new RegExp("#{modelUrl}"))
     .respond 200, backendModel
 
-    modelData = 
+    modelData =
       id: 5
       name: "model5"
 
@@ -329,7 +329,7 @@ describe 'Model Factory', ->
     httpBackend.expectDELETE(new RegExp("#{modelUrl}/5"), {"Authorization":"12345==","Accept":"application/json, text/plain, */*"}
     ).respond 200
 
-    Model.delete modelData, 
+    Model.delete modelData,
       headers:
         'Authorization': '12345=='
 
@@ -391,9 +391,25 @@ describe 'Model Factory', ->
 
     httpBackend.flush()
 
+  it "doesn't use the same promise while waiting for the backend to return a get request if forceGet is specified", ->
+    httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
+      .respond 200, modelList[0]
+
+    httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
+      .respond 200, modelList[0]
+
+    Model = modelFactory modelUrl
+
+    promise1 = Model.get(1)
+    promise2 = Model.get(1, true)
+
+    expect(promise1).not.toBe(promise2)
+
+    httpBackend.flush()
+
   it "expires and refreshes or removes the object from the cache", ->
     aModel = null
-    Model = modelFactory modelUrl, 
+    Model = modelFactory modelUrl,
       cacheOptions:
         maxAge: 50
         recycleFreq: 10
@@ -547,7 +563,7 @@ describe 'Model Factory', ->
       name: "model5"
     ]
     httpBackend.expectGET(new RegExp("#{modelUrl}\\?name=model5")).respond(200, modelData)
-    
+
     queryResult = null
     Model = modelFactory modelUrl
 
@@ -593,11 +609,11 @@ describe 'Model Factory', ->
       date: 1
     ]
     httpBackend.expectGET(new RegExp("#{modelUrl}\\?date=1&name=model5")).respond(200, modelData)
-    
+
     queryResult = null
     Model = modelFactory modelUrl
 
-    promise = Model.query 
+    promise = Model.query
       name: "model5"
       date: 1
     promise.then (data) -> queryResult = data
@@ -612,7 +628,7 @@ describe 'Model Factory', ->
     promise2 = Model.query
       date: 1
       name: "model5"
-      
+
     promise2.then (data) -> queryResult2 = data
 
     rootScope.$apply()
@@ -625,11 +641,11 @@ describe 'Model Factory', ->
       name: "model5"
     ]
     httpBackend.expectGET(new RegExp("#{modelUrl}\\?name=model5")).respond(200, modelData)
-    
+
     queryResult = null
     Model = modelFactory modelUrl
 
-    promise = Model.query 
+    promise = Model.query
       name: "model5"
     promise.then (data) -> queryResult = data
 
@@ -648,11 +664,11 @@ describe 'Model Factory', ->
 
     queryResult2 = null
     promise2 = Model.query({name: "model5"}, true)
-      
+
     promise2.then (data) -> queryResult2 = data
 
     httpBackend.flush()
     rootScope.$apply()
 
-    expect(queryResult2).toBe(queryResult) 
+    expect(queryResult2).toBe(queryResult)
 
