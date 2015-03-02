@@ -118,7 +118,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
         # httpOptions is a list of options that can extend the $http.get request.
         @get: (modelId, forceGet=false, httpOptions={}) =>
           # case 1
-          if _getPromiseMap[modelId]?
+          if not forceGet and _getPromiseMap[modelId]?
             return _getPromiseMap[modelId]
 
           deferred = $q.defer()

@@ -198,7 +198,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           if (httpOptions == null) {
             httpOptions = {};
           }
-          if (_getPromiseMap[modelId] != null) {
+          if (!forceGet && (_getPromiseMap[modelId] != null)) {
             return _getPromiseMap[modelId];
           }
           deferred = $q.defer();
