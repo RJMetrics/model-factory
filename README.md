@@ -1,6 +1,8 @@
 model-factory
 =============
 
+#### Owners: Matt Bilyeu
+
 A tool for building RESTful models for AngularJS
 
 ### Developing
