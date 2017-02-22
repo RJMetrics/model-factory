@@ -31,5 +31,8 @@
     "karma-coffee-preprocessor": "^0.2.1",
     "karma-jasmine": "^0.1.5",
     "karma-phantomjs-launcher": "^0.1.4"
+  },
+  "dependencies": {
+    "bower": "^1.8.0"
   }
 }

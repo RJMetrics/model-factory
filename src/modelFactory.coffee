@@ -224,7 +224,12 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           $http(httpObject)
           .then (successResponse) ->
             # Now that we've saved the model add the updated model to the cached/collection
-            _updateModel successResponse.data
+            # If model is not in the cache its most likely because its expired,
+            # so let cacheOptions.onExpire handle the recache
+            if _modelCache.get("#{successResponse.data.id}")?
+              _updateModel successResponse.data
+            else
+              successResponse.data
           , (errorResponse) ->
             return $q.reject(errorResponse)
 
