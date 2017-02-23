@@ -314,7 +314,11 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
             data: model
           });
           return $http(httpObject).then(function(successResponse) {
-            return _updateModel(successResponse.data);
+            if (_modelCache.get("" + successResponse.data.id) != null) {
+              return _updateModel(successResponse.data);
+            } else {
+              return successResponse.data;
+            }
           }, function(errorResponse) {
             return $q.reject(errorResponse);
           });

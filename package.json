@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/RJMetrics/model-factory",
   "devDependencies": {
+    "bower": "^1.8.0",
     "coffee-script": "^1.7.1",
     "grunt": "^0.4.4",
     "grunt-cli": "^0.1.13",
