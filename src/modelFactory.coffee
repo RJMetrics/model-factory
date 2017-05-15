@@ -267,6 +267,13 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           , (errorResponse) ->
             return $q.reject(errorResponse)
 
+        @clearCache: (ids = []) =>
+          if ids and ids.length > 0
+            for id in ids
+              _modelCache.remove "#{id}"
+          else
+            _modelCache.removeAll()
+
         # instance methods that you can call on an instantiated model
         # instead of using the static methods. They call the static
         # methods with the correct data.
