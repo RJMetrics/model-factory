@@ -672,3 +672,34 @@ describe 'Model Factory', ->
 
     expect(queryResult2).toBe(queryResult)
 
+  it "should clear cache when asked and refetch from backend", ->
+    Model = modelFactory(modelUrl)
+    executeInner = ->
+      httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
+      .respond 200, modelList[0]
+      aModel = null
+      Model.get(1).then (m) -> aModel = m
+      httpBackend.flush()
+      expect(aModel instanceof Model).toBeTruthy()
+    executeInner()
+    Model.clearCache()
+    executeInner()
+
+  it "should allow clearing cache for specific items", ->
+    Model = modelFactory(modelUrl)
+    executeInner = (id) ->
+      httpBackend.expectGET(new RegExp("#{modelUrl}/#{id}"))
+      .respond 200, modelList[id - 1]
+      aModel = null
+      Model.get(id).then (m) -> aModel = m
+      httpBackend.flush()
+      expect(aModel instanceof Model).toBeTruthy()
+      return aModel
+    executeInner(1)
+    model2 = executeInner(2)
+    Model.clearCache([1])
+    executeInner(1)
+    model2_theSecond = null
+    model2.$get().then (m) -> model2_theSecond = m
+    rootScope.$apply()
+    expect(model2_theSecond).toBe(model2)

@@ -361,6 +361,23 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           });
         };
 
+        Model.clearCache = function(ids) {
+          var id, _i, _len, _results;
+          if (ids == null) {
+            ids = [];
+          }
+          if (ids && ids.length > 0) {
+            _results = [];
+            for (_i = 0, _len = ids.length; _i < _len; _i++) {
+              id = ids[_i];
+              _results.push(_modelCache.remove("" + id));
+            }
+            return _results;
+          } else {
+            return _modelCache.removeAll();
+          }
+        };
+
         Model.prototype.$get = function(forceGet, httpOptions) {
           if (forceGet == null) {
             forceGet = false;
