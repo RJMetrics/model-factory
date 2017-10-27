@@ -1,8 +1,8 @@
 angular.module('rjmetrics.model-factory').factory("modelFactory", [
   "$q"
   "$http"
-  "$angularCacheFactory"
-  ($q, $http, $angularCacheFactory) ->
+  "CacheFactory"
+  ($q, $http, CacheFactory) ->
     #TODO: see if we should use local or session storage?
     DEFAULT_CACHE_OPTIONS =
       maxAge: 600000 # 10 minutes
@@ -50,7 +50,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
               delete _getPromiseMap[+key]
               return _removeModel(model)
 
-        _modelCache = $angularCacheFactory url, cacheOptions
+        _modelCache = CacheFactory url, cacheOptions
 
         #add a model to the cache and collection
         _addModel = (modelData) ->

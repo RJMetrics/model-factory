@@ -1,6 +1,6 @@
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
-angular.module('rjmetrics.model-factory', ['ng', 'jmdobry.angular-cache']);
+angular.module('rjmetrics.model-factory', ['ng', 'angular-cache']);
 
 angular.module('rjmetrics.model-factory').directive("formSubmittee", [
   "$parse", "$exceptionHandler", function($parse, $exceptionHandler) {
@@ -62,7 +62,7 @@ angular.module('rjmetrics.model-factory').directive("formSubmitter", [
 ]);
 
 angular.module('rjmetrics.model-factory').factory("modelFactory", [
-  "$q", "$http", "$angularCacheFactory", function($q, $http, $angularCacheFactory) {
+  "$q", "$http", "CacheFactory", function($q, $http, CacheFactory) {
     var DEFAULT_CACHE_OPTIONS, DEFAULT_HTTP_OPTIONS;
     DEFAULT_CACHE_OPTIONS = {
       maxAge: 600000,
@@ -121,7 +121,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           }
         };
 
-        _modelCache = $angularCacheFactory(url, cacheOptions);
+        _modelCache = CacheFactory(url, cacheOptions);
 
         _addModel = function(modelData) {
           var model;

@@ -20,15 +20,17 @@ describe 'Model Factory', ->
   angularCache = null
   url = null
   rootScope = null
+  $timeout = null
 
   beforeEach ->
     module('rjmetrics.model-factory')
 
-  beforeEach inject (_modelFactory_, _$httpBackend_, $angularCacheFactory, $q, $rootScope) ->
+  beforeEach inject (_modelFactory_, _$httpBackend_, CacheFactory, $q, $rootScope, _$timeout_) ->
     modelFactory = _modelFactory_
     httpBackend = _$httpBackend_
-    angularCache = $angularCacheFactory
+    angularCache = CacheFactory
     rootScope = $rootScope
+    $timeout = _$timeout_
 
   afterEach ->
     angularCache.get(modelUrl).destroy()
@@ -407,31 +409,27 @@ describe 'Model Factory', ->
 
     httpBackend.flush()
 
-  it "expires and refreshes or removes the object from the cache", ->
+  it "expires and refreshes the object from the cache", (done) ->
     aModel = null
     Model = modelFactory modelUrl,
       cacheOptions:
         maxAge: 50
         recycleFreq: 10
-    runs ->
-      httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
-        .respond 200, modelList[0]
+    httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
+      .respond 200, modelList[0]
 
-      Model.get(1).then (m) -> aModel = m
+    Model.get(1).then (m) -> aModel = m
 
+    httpBackend.flush()
+
+    newModel = angular.copy modelList[0]
+    newModel.name = "updated"
+
+    httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
+    .respond 200, newModel
+
+    setTimeout(->
       httpBackend.flush()
-
-      newModel = angular.copy modelList[0]
-      newModel.name = "updated"
-
-      httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
-      .respond 200, newModel
-
-    waits(150)
-
-    runs ->
-      httpBackend.flush()
-
       aModel2 = null
       Model.get(1).then (m) -> aModel2 = m
 
@@ -440,24 +438,38 @@ describe 'Model Factory', ->
       expect(aModel2.name).toBe("updated")
       expect(aModel.id).toBe(aModel2.id)
 
-      httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
-        .respond 404
+      done()
+    , 150)
 
-    waits(150)
+  it "expires and removes the object from the cache", (done) ->
+    aModel = null
+    Model = modelFactory modelUrl,
+      cacheOptions:
+        maxAge: 50
+        recycleFreq: 10
+    httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
+      .respond 200, modelList[0]
 
-    runs ->
+    Model.get(1).then (m) -> aModel = m
 
+    httpBackend.flush()
+
+    httpBackend.whenGET(new RegExp("#{modelUrl}/1")).respond(404, {})
+
+    setTimeout(->
       httpBackend.flush()
 
-      httpBackend.expectGET(new RegExp("#{modelUrl}/1"))
-        .respond 404
-
       error = null;
-      Model.get(1).then null, (e) -> error = e
+      Model.get(1).then null
+      , (e) ->
+        error = e
 
       httpBackend.flush()
 
       expect(error.status).toBe(404)
+
+      done()
+    , 150)
 
   it "@get returns a rejected promise in the event of an error.", ->
     httpBackend.expectGET(new RegExp("#{modelUrl}/1"))

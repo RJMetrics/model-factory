@@ -23,7 +23,7 @@
   ],
   "devDependencies": {
     "angular": "~1.2.15",
-    "angular-cache": "~2.3.3",
+    "angular-cache": "~4.6.0",
     "angular-mocks": "~1.2.15",
     "underscore": "~1.6.0"
   }
