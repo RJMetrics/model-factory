@@ -1,6 +1,7 @@
 {
   "name": "model-factory",
   "version": "1.0.0",
+  "main": "dist/model-factory.js",
   "description": "A tool for building RESTful models for AngularJS",
   "directories": {
     "test": "test"
