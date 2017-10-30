@@ -1,1 +1,1 @@
-angular.module('rjmetrics.model-factory', ['ng','jmdobry.angular-cache'])
+angular.module('rjmetrics.model-factory', ['ng','angular-cache'])

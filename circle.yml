@@ -1,7 +1,10 @@
+machine:
+  node:
+    version: 6.11.4
 dependencies:
   override:
     - npm install
-    - bower install
+    - node_modules/.bin/bower install
 test:
   override:
-    - grunt karma:continuous
+    - node_modules/.bin/grunt karma:continuous
