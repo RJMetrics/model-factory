@@ -2,6 +2,8 @@ machine:
   node:
     version: 6.11.4
 dependencies:
+  pre:
+    - npm -g install npm@3.10.10
   override:
     - npm install
     - bower install
