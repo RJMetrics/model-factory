@@ -121,7 +121,9 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           }
         };
 
-        _modelCache = CacheFactory(url, cacheOptions);
+        if (!CacheFactory.get(url)) {
+          _modelCache = CacheFactory(url, cacheOptions);
+        }
 
         _addModel = function(modelData) {
           var model;
