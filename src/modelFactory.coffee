@@ -50,10 +50,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
               delete _getPromiseMap[+key]
               return _removeModel(model)
 
-        console.log "before:", CacheFactory.get(url)
-        if (not CacheFactory.get(url))
-          console.log "setting _modelCache"
-          _modelCache = CacheFactory url, cacheOptions
+        _modelCache = CacheFactory.get(url) or CacheFactory url, cacheOptions
 
         #add a model to the cache and collection
         _addModel = (modelData) ->
@@ -84,7 +81,6 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           return _modelCollection
 
         _addQueryCollection = (params, collection) ->
-          console.log "in _addQueryCollection"
           queryCollection = _(collection).map (model) ->
             if _modelCache.get("#{model.id}")
               return _updateModel(model)

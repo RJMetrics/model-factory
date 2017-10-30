@@ -121,12 +121,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
           }
         };
 
-        console.log("before:", CacheFactory.get(url));
-
-        if (!CacheFactory.get(url)) {
-          console.log("setting _modelCache");
-          _modelCache = CacheFactory(url, cacheOptions);
-        }
+        _modelCache = CacheFactory.get(url) || CacheFactory(url, cacheOptions);
 
         _addModel = function(modelData) {
           var model;
@@ -160,7 +155,6 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
 
         _addQueryCollection = function(params, collection) {
           var model, queryCollection, _i, _len;
-          console.log("in _addQueryCollection");
           queryCollection = _(collection).map(function(model) {
             if (_modelCache.get("" + model.id)) {
               return _updateModel(model);
