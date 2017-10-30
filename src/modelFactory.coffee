@@ -15,6 +15,7 @@ angular.module('rjmetrics.model-factory').factory("modelFactory", [
     (url, options) ->
       unless options?
         options = {}
+
       cacheOptions = angular.extend({}, DEFAULT_CACHE_OPTIONS, options.cacheOptions)
 
       class Model
