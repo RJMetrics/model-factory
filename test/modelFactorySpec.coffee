@@ -20,17 +20,15 @@ describe 'Model Factory', ->
   angularCache = null
   url = null
   rootScope = null
-  $timeout = null
 
   beforeEach ->
     module('rjmetrics.model-factory')
 
-  beforeEach inject (_modelFactory_, _$httpBackend_, CacheFactory, $q, $rootScope, _$timeout_) ->
+  beforeEach inject (_modelFactory_, _$httpBackend_, CacheFactory, $q, $rootScope) ->
     modelFactory = _modelFactory_
     httpBackend = _$httpBackend_
     angularCache = CacheFactory
     rootScope = $rootScope
-    $timeout = _$timeout_
 
   afterEach ->
     angularCache.get(modelUrl).destroy()
